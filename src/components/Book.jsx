@@ -10,10 +10,11 @@ import {
     Skeleton,
     SkeletonHelper,
     SkinnedMesh,
+    SRGBColorSpace,
     Uint16BufferAttribute,
     Vector3
 } from 'three';
-import { useHelper } from '@react-three/drei';
+import { useHelper, useTexture } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { degToRad } from 'three/src/math/MathUtils.js';
 
@@ -76,16 +77,24 @@ const pageMaterials = [
     }),
     new MeshStandardMaterial({
         color: whiteColor
-    }),
-    new MeshStandardMaterial({
-        color: "pink"
-    }),
-    new MeshStandardMaterial({
-        color: "blue"
     })
 ];
 
+
+pages.forEach((page) => {
+    useTexture.preload(`/textures/${page.front}.jpg`);
+    useTexture.preload(`/textures/${page.back}.jpg`);
+    useTexture.preload(`/textures/book-cover-roughness.jpg`);
+});
+
 const Page = ({ number, front, back, ...props }) => {
+    const [picture, picture2, pictureRoughness] = useTexture([
+        `/textures/${front}.jpg`,
+        `/textures/${back}.jpg`,
+        ...(number === 0 || number === pages.length - 1 ? [`/textures/book-cover-roughness.jpg`] : []),
+    ]);
+
+    picture.colorSpace = picture2.colorSpace = SRGBColorSpace;
     const group = useRef();
 
     const skinnedMeshRef = useRef();
@@ -108,7 +117,25 @@ const Page = ({ number, front, back, ...props }) => {
         }
 
         const skeleton = new Skeleton(bones);
-        const materials = pageMaterials;
+        const materials = [
+            ...pageMaterials,
+            new MeshStandardMaterial({
+                color: whiteColor,
+                map: picture,
+                ...(number === 0
+                    ? { roughnessMap: pictureRoughness, }
+                    : { roughness: 0.1 }
+                ),
+            }),
+            new MeshStandardMaterial({
+                color: whiteColor,
+                map: picture2,
+                ...(number === pages.length - 1
+                    ? { roughnessMap: pictureRoughness, }
+                    : { roughness: 0.1 }
+                ),
+            }),
+        ];
         const mesh = new SkinnedMesh(pageGeometry, materials);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
