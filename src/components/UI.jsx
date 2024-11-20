@@ -55,22 +55,20 @@ export const UI = () => {
             {[...pages].map((_, index) => (
               <button
                 key={index}
-                className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
-                  index === page
-                    ? "bg-white/90 text-black"
-                    : "bg-black/30 text-white"
-                }`}
+                className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${index === page
+                  ? "bg-white/90 text-black"
+                  : "bg-black/30 text-white"
+                  }`}
                 onClick={() => setPage(index)}
               >
                 {index === 0 ? "Cover" : `Page ${index}`}
               </button>
             ))}
             <button
-              className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
-                page === pages.length
-                  ? "bg-white/90 text-black"
-                  : "bg-black/30 text-white"
-              }`}
+              className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${page === pages.length
+                ? "bg-white/90 text-black"
+                : "bg-black/30 text-white"
+                }`}
               onClick={() => setPage(pages.length)}
             >
               Back Cover
@@ -79,7 +77,7 @@ export const UI = () => {
         </div>
       </main>
 
-      <div className="fixed inset-0 flex items-center -rotate-2 select-none">
+      <div className="fixed inset-0  items-center -rotate-2 select-none hidden">
         <div className="relative">
           <div className="bg-white/0  animate-horizontal-scroll flex items-center gap-8 w-max px-8">
             <h1 className="shrink-0 text-white text-10xl font-black ">
