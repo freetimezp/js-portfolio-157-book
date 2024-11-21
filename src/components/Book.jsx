@@ -1,11 +1,12 @@
 import React, { useMemo, useRef } from 'react';
 
-import { pages } from './UI';
+import { pageAtom, pages } from './UI';
 import {
     Bone,
     BoxGeometry,
     Color,
     Float32BufferAttribute,
+    MathUtils,
     MeshStandardMaterial,
     Skeleton,
     SkeletonHelper,
@@ -17,7 +18,13 @@ import {
 import { useHelper, useTexture } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { degToRad } from 'three/src/math/MathUtils.js';
+import { useAtom } from 'jotai';
+import { easing } from 'maath';
 
+const easingFactor = 0.5; //controls to speed of easing
+const insideCurveStrength = 0.18; // strength of the curve
+const outsideCurveStrength = 0.05;
+const turningCurveStrength = 0.09;
 
 const PAGE_WIDTH = 1.28;
 const PAGE_HEIGHT = 1.71; // 4:3 aspect ratio
@@ -80,14 +87,14 @@ const pageMaterials = [
     })
 ];
 
-
 pages.forEach((page) => {
     useTexture.preload(`/textures/${page.front}.jpg`);
     useTexture.preload(`/textures/${page.back}.jpg`);
     useTexture.preload(`/textures/book-cover-roughness.jpg`);
 });
 
-const Page = ({ number, front, back, ...props }) => {
+
+const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
     const [picture, picture2, pictureRoughness] = useTexture([
         `/textures/${front}.jpg`,
         `/textures/${back}.jpg`,
@@ -149,33 +156,67 @@ const Page = ({ number, front, back, ...props }) => {
 
     //useHelper(skinnedMeshRef, SkeletonHelper, "red");
 
-    useFrame(() => {
+    useFrame((_, delta) => {
         if (!skinnedMeshRef.current) return;
+
+        let targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
+        if (!bookClosed) {
+            targetRotation += degToRad(number * 0.8);
+        }
 
         const bones = skinnedMeshRef.current.skeleton.bones;
 
+        for (let i = 0; i < bones.length; i++) {
+            const target = i === 0 ? group.current : bones[i];
+
+            const insideCurveIntensity = i < 8 ? Math.sin(i * 0.2 + 0.25) : 0;
+            const outsideCurveIntensity = i >= 8 ? Math.cos(i * 0.3 + 0.09) : 0;
+
+            let rotationAngle =
+                insideCurveStrength * insideCurveIntensity * targetRotation -
+                outsideCurveStrength * outsideCurveIntensity * targetRotation;
+
+            if (bookClosed) {
+                if (i === 0) {
+                    rotationAngle = targetRotation;
+                } else {
+                    rotationAngle = 0;
+                }
+            }
+
+            easing.dampAngle(
+                target.rotation,
+                "y",
+                rotationAngle,
+                easingFactor,
+                delta
+            );
+        }
     });
 
     return (
         <group {...props} ref={group}>
-            <primitive object={manualSkinnedMesh} ref={skinnedMeshRef} />
+            <primitive object={manualSkinnedMesh} ref={skinnedMeshRef}
+                position-z={-number * PAGE_DEPTH + page * PAGE_DEPTH} />
         </group>
     );
 };
 
 const Book = ({ ...props }) => {
+    const [page] = useAtom(pageAtom);
+
     return (
-        <group {...props}>
+        <group {...props} rotation-y={-Math.PI / 2}>
             {
                 [...pages].map((pageData, index) =>
-                    index === 0 ? (
-                        <Page
-                            position-x={index * 0.15}
-                            key={index}
-                            number={index}
-                            {...pageData}
-                        />
-                    ) : null
+                    <Page
+                        key={index}
+                        page={page}
+                        number={index}
+                        {...pageData}
+                        opened={page > index}
+                        bookClosed={page === 0 || page === pages.length}
+                    />
                 )
             }
         </group>
